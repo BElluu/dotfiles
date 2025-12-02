@@ -1,88 +1,41 @@
 return {
-  -- DAP (Debug Adapter Protocol)
+  -- nvim-dap - Debug Adapter Protocol
   {
     "mfussenegger/nvim-dap",
     dependencies = {
       "rcarriga/nvim-dap-ui",
-      "nvim-neotest/nvim-nio",
       "theHamsta/nvim-dap-virtual-text",
-    },
-    keys = {
-      {
-        "<F5>",
-        function()
-          require("dap").continue()
-        end,
-        desc = "Debug: Start/Continue",
-      },
-      {
-        "<F10>",
-        function()
-          require("dap").step_over()
-        end,
-        desc = "Debug: Step Over",
-      },
-      {
-        "<F11>",
-        function()
-          require("dap").step_into()
-        end,
-        desc = "Debug: Step Into",
-      },
-      {
-        "<F12>",
-        function()
-          require("dap").step_out()
-        end,
-        desc = "Debug: Step Out",
-      },
-      {
-        "<leader>db",
-        function()
-          require("dap").toggle_breakpoint()
-        end,
-        desc = "Debug: Toggle Breakpoint",
-      },
-      {
-        "<leader>dB",
-        function()
-          require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: "))
-        end,
-        desc = "Debug: Conditional Breakpoint",
-      },
-      {
-        "<leader>dr",
-        function()
-          require("dap").repl.open()
-        end,
-        desc = "Debug: Open REPL",
-      },
-      {
-        "<leader>dl",
-        function()
-          require("dap").run_last()
-        end,
-        desc = "Debug: Run Last",
-      },
-      {
-        "<leader>du",
-        function()
-          require("dapui").toggle()
-        end,
-        desc = "Debug: Toggle UI",
-      },
+      "nvim-neotest/nvim-nio",
     },
     config = function()
       local dap = require("dap")
       local dapui = require("dapui")
 
-      -- Setup DAP UI
-      dapui.setup()
+      -- Konfiguracja DAP UI
+      dapui.setup({
+        layouts = {
+          {
+            elements = {
+              { id = "scopes", size = 0.25 },
+              { id = "breakpoints", size = 0.25 },
+              { id = "stacks", size = 0.25 },
+              { id = "watches", size = 0.25 },
+            },
+            position = "left",
+            size = 40,
+          },
+          {
+            elements = {
+              { id = "repl", size = 0.5 },
+              { id = "console", size = 0.5 },
+            },
+            position = "bottom",
+            size = 10,
+          },
+        },
+      })
 
-      -- Virtual text
-      require("nvim-dap-virtual-text").setup()
-
-      -- Auto open/close UI
+      -- Automatyczne otwieranie/zamykanie DAP UI
       dap.listeners.after.event_initialized["dapui_config"] = function()
         dapui.open()
       end
@@ -93,92 +46,61 @@ return {
         dapui.close()
       end
 
-      -- Icons
-      vim.fn.sign_define("DapBreakpoint", { text = "●", texthl = "DapBreakpoint", linehl = "", numhl = "" })
-      vim.fn.sign_define(
-        "DapBreakpointCondition",
-        { text = "◆", texthl = "DapBreakpointCondition", linehl = "", numhl = "" }
-      )
-      vim.fn.sign_define("DapLogPoint", { text = "◆", texthl = "DapLogPoint", linehl = "", numhl = "" })
-      vim.fn.sign_define("DapStopped", { text = "→", texthl = "DapStopped", linehl = "DapStoppedLine", numhl = "" })
-      vim.fn.sign_define(
-        "DapBreakpointRejected",
-        { text = "○", texthl = "DapBreakpointRejected", linehl = "", numhl = "" }
-      )
+      -- Konfiguracja netcoredbg dla C#
+      dap.adapters.coreclr = {
+        type = "executable",
+        command = "netcoredbg",
+        args = { "--interpreter=vscode" },
+      }
+
+      dap.configurations.cs = {
+        {
+          type = "coreclr",
+          name = "Launch (netcoredbg)",
+          request = "launch",
+          program = function()
+            return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
+          end,
+          cwd = "${workspaceFolder}",
+          stopAtEntry = false,
+        },
+        {
+          type = "coreclr",
+          name = "Attach (netcoredbg)",
+          request = "attach",
+          processId = function()
+            return vim.fn.input("Process ID: ")
+          end,
+        },
+      }
+
+      -- Podstawowe keybindings dla debuggera
+      vim.keymap.set("n", "<F5>", dap.continue, { desc = "Debug: Start/Continue" })
+      vim.keymap.set("n", "<F1>", dap.step_into, { desc = "Debug: Step Into" })
+      vim.keymap.set("n", "<F2>", dap.step_over, { desc = "Debug: Step Over" })
+      vim.keymap.set("n", "<F3>", dap.step_out, { desc = "Debug: Step Out" })
+      vim.keymap.set("n", "<leader>b", dap.toggle_breakpoint, { desc = "Debug: Toggle Breakpoint" })
+      vim.keymap.set("n", "<leader>B", function()
+        dap.set_breakpoint(vim.fn.input("Breakpoint condition: "))
+      end, { desc = "Debug: Set Conditional Breakpoint" })
+      vim.keymap.set("n", "<leader>dr", dap.repl.open, { desc = "Debug: Open REPL" })
+      vim.keymap.set("n", "<leader>dl", dap.run_last, { desc = "Debug: Run Last" })
     end,
   },
 
-  -- Mason DAP - automatycznie zainstaluje debuggery
+  -- DAP UI - interfejs użytkownika dla debuggera
   {
-    "jay-babu/mason-nvim-dap.nvim",
-    dependencies = { "mason-org/mason.nvim", "mfussenegger/nvim-dap" },
-    opts = {
-      ensure_installed = { "coreclr", "node2" },
-      automatic_installation = true,
-      handlers = {
-        function(config)
-          require("mason-nvim-dap").default_setup(config)
-        end,
-      },
-    },
+    "rcarriga/nvim-dap-ui",
+    dependencies = { "nvim-dap" },
   },
 
-  -- Konfiguracje dla konkretnych języków
+  -- Virtual text dla DAP - wyświetla wartości zmiennych w kodzie
   {
-    "mfussenegger/nvim-dap",
-    optional = true,
-    opts = function()
-      local dap = require("dap")
-
-      -- C# configurations
-      if not dap.configurations.cs then
-        dap.configurations.cs = {}
-      end
-
-      table.insert(dap.configurations.cs, {
-        type = "coreclr",
-        name = "launch - netcoredbg",
-        request = "launch",
-        program = function()
-          return vim.fn.input("Path to dll: ", vim.fn.getcwd() .. "/bin/Debug/", "file")
-        end,
-      })
-
-      table.insert(dap.configurations.cs, {
-        type = "coreclr",
-        name = "attach - netcoredbg",
-        request = "attach",
-        processId = function()
-          return require("dap.utils").pick_process()
-        end,
-      })
-
-      -- TypeScript/JavaScript configurations
-      if not dap.configurations.typescript then
-        dap.configurations.typescript = {}
-      end
-
-      table.insert(dap.configurations.typescript, {
-        type = "node2",
-        request = "launch",
-        name = "Launch Program (TypeScript)",
-        program = "${file}",
-        cwd = vim.fn.getcwd(),
-        sourceMaps = true,
-        protocol = "inspector",
-        console = "integratedTerminal",
-      })
-
-      table.insert(dap.configurations.typescript, {
-        type = "node2",
-        request = "attach",
-        name = "Attach to Process",
-        processId = function()
-          return require("dap.utils").pick_process()
-        end,
-      })
-
-      dap.configurations.javascript = dap.configurations.typescript
+    "theHamsta/nvim-dap-virtual-text",
+    dependencies = { "nvim-dap" },
+    config = function()
+      require("nvim-dap-virtual-text").setup()
     end,
   },
 }
+
