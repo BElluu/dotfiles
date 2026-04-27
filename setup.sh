@@ -3,10 +3,10 @@ set -e
 
 REPO_URL="https://github.com/BElluu/dotfiles.git"
 
-echo "=== Neovim 12 & AI Setup ==="
+echo "=== Dotfiles v1.0 ==="
 echo "1) Full Install"
 echo "2) Update Tools"
-echo "3) Sync Config Only"
+echo "3) Overwrite nvim by repo"
 echo "4) Exit"
 read -p "Selection: " CHOICE
 
@@ -46,15 +46,21 @@ install_fonts() {
 }
 
 sync_config() {
-    [ -d ~/.config/nvim ] && rm -rf ~/.config/nvim.bak && mv ~/.config/nvim ~/.config/nvim.bak
-    rm -rf ~/.local/share/nvim/lazy
-    
+    # 1. Permanent removal of current config and cache
+    echo "Cleaning up current Neovim config and cache..."
+    rm -rf ~/.config/nvim
+    rm -rf ~/.local/share/nvim
+    rm -rf ~/.local/state/nvim
+    rm -rf ~/.cache/nvim
+
+    # 2. Clone fresh from repo
     TMP_DIR=$(mktemp -d)
     git clone "$REPO_URL" "$TMP_DIR"
     
     if [ -d "$TMP_DIR/nvim" ]; then
         mkdir -p ~/.config
         cp -r "$TMP_DIR/nvim" ~/.config/
+        echo "Config overwritten successfully from repo."
     else
         echo "Error: 'nvim' directory not found in repo."
         exit 1
