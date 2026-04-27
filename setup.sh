@@ -44,7 +44,10 @@ install_deps() {
 install_ai() {
     echo "Installing AI tools..."
     sudo npm install -g @anthropic-ai/claude-code
-    curl -fsSL https://cursor.com/install.sh | bash
+    curl https://cursor.com/install.sh -fsS | bash
+    if ! grep -q ".local/bin" ~/.bashrc; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+    fi
 }
 
 install_fonts() {

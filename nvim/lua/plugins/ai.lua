@@ -20,10 +20,14 @@ return {
       local Terminal = require("toggleterm.terminal").Terminal
 
       local claude = Terminal:new({ cmd = "claude", hidden = true })
-      local cursor = Terminal:new({ cmd = "cursor", hidden = true })
+      local cursor_agent = Terminal:new({ cmd = "agent", hidden = true })
 
-      vim.keymap.set("n", "<leader>ac", function() claude:toggle() end, { desc = "Claude Code" })
-      vim.keymap.set("n", "<leader>aa", function() cursor:toggle() end, { desc = "Cursor AI CLI" })
+      vim.keymap.set("n", "<leader>ac", function()
+        claude:toggle()
+      end, { desc = "Claude Code" })
+      vim.keymap.set("n", "<leader>aa", function()
+        cursor_agent:toggle()
+      end, { desc = "Cursor AI CLI" })
     end,
   },
 }
