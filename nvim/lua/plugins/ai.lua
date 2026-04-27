@@ -1,14 +1,18 @@
 return {
   {
     "akinsho/toggleterm.nvim",
-    lazy = false,
+    version = "*",
     opts = {
       open_mapping = [[<c-\>]],
       direction = "float",
       float_opts = {
         border = "double",
-        width = math.ceil(vim.o.columns * 0.8),
-        height = math.ceil(vim.o.rows * 0.8),
+        width = function()
+          return math.ceil(vim.o.columns * 0.8)
+        end,
+        height = function()
+          return math.ceil(vim.o.lines * 0.8)
+        end,
       },
     },
     config = function(_, opts)

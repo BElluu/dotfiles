@@ -6,7 +6,7 @@ return {
     opts = { disabled_filetypes = { "toggleterm", "lazy", "mason", "TelescopePrompt" } },
   },
   {
-    "williamboman/mason.nvim",
+    "mason-org/mason.nvim",
     opts = {
       ensure_installed = {
         "stylua",
