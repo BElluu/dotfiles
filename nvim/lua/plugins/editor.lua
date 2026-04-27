@@ -1,0 +1,29 @@
+return {
+  {
+    "m4xshen/hardtime.nvim",
+    dependencies = { "MunifTanjim/nui.nvim", "nvim-lua/plenary.nvim" },
+    event = "VeryLazy",
+    opts = { disabled_filetypes = { "toggleterm", "lazy", "mason", "TelescopePrompt" } },
+  },
+  {
+    "williamboman/mason.nvim",
+    opts = {
+      ensure_installed = {
+        "stylua",
+        "omnisharp", -- C# LSP
+        "typescript-language-server", -- TS LSP
+        "netcoredbg", -- Debugger dla C#
+      },
+    },
+  },
+  {
+    "nvim-telescope/telescope.nvim",
+    opts = {
+      defaults = {
+        layout_strategy = "horizontal",
+        layout_config = { prompt_position = "top" },
+        sorting_strategy = "ascending",
+      },
+    },
+  },
+}
