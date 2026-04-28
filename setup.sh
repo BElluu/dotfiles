@@ -69,33 +69,35 @@ install_tpm() {
 }
 
 sync_config() {
-  echo "Syncing config from: $REPO_URL"
-  rm -rf ~/.config/nvim ~/.local/share/nvim ~/.local/state/nvim ~/.cache/nvim
+  DOTFILES_DIR="$HOME/code/dotfiles"
 
-  TMP_DIR=$(mktemp -d)
-  git clone "$REPO_URL" "$TMP_DIR"
-
-  if [ -d "$TMP_DIR/nvim" ]; then
-    mkdir -p ~/.config
-    cp -r "$TMP_DIR/nvim" ~/.config/
+  if [ -d "$DOTFILES_DIR/.git" ]; then
+    echo "Updating existing repo at $DOTFILES_DIR..."
+    git -C "$DOTFILES_DIR" pull
   else
-    echo "Error: 'nvim' directory not found in repo."
-    exit 1
+    echo "Cloning repo to $DOTFILES_DIR..."
+    mkdir -p "$HOME/code"
+    git clone "$REPO_URL" "$DOTFILES_DIR"
   fi
 
-  if [ -f "$TMP_DIR/tmux.conf" ]; then
-    cp "$TMP_DIR/tmux.conf" ~/.tmux.conf
-    echo "tmux config installed at ~/.tmux.conf"
-  fi
+  # Clear nvim state/cache but NOT the config dir (it will be a symlink)
+  rm -rf ~/.local/share/nvim ~/.local/state/nvim ~/.cache/nvim
 
-  if [ -f "$TMP_DIR/tmux/sessions.sh" ]; then
-    mkdir -p ~/.config/tmux
-    cp "$TMP_DIR/tmux/sessions.sh" ~/.config/tmux/sessions.sh
-    chmod +x ~/.config/tmux/sessions.sh
-    echo "tmux sessions script installed at ~/.config/tmux/sessions.sh"
-  fi
+  # Symlink nvim config
+  rm -rf ~/.config/nvim
+  mkdir -p ~/.config
+  ln -sf "$DOTFILES_DIR/nvim" ~/.config/nvim
+  echo "nvim config symlinked: ~/.config/nvim -> $DOTFILES_DIR/nvim"
 
-  rm -rf "$TMP_DIR"
+  # Symlink tmux config
+  ln -sf "$DOTFILES_DIR/tmux.conf" ~/.tmux.conf
+  echo "tmux config symlinked: ~/.tmux.conf -> $DOTFILES_DIR/tmux.conf"
+
+  # Symlink sessions script
+  mkdir -p ~/.config/tmux
+  ln -sf "$DOTFILES_DIR/tmux/sessions.sh" ~/.config/tmux/sessions.sh
+  chmod +x "$DOTFILES_DIR/tmux/sessions.sh"
+  echo "sessions script symlinked: ~/.config/tmux/sessions.sh -> $DOTFILES_DIR/tmux/sessions.sh"
 }
 
 case $CHOICE in
