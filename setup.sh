@@ -88,6 +88,13 @@ sync_config() {
     echo "tmux config installed at ~/.tmux.conf"
   fi
 
+  if [ -f "$TMP_DIR/tmux/sessions.sh" ]; then
+    mkdir -p ~/.config/tmux
+    cp "$TMP_DIR/tmux/sessions.sh" ~/.config/tmux/sessions.sh
+    chmod +x ~/.config/tmux/sessions.sh
+    echo "tmux sessions script installed at ~/.config/tmux/sessions.sh"
+  fi
+
   rm -rf "$TMP_DIR"
 }
 
