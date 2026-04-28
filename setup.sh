@@ -61,6 +61,13 @@ install_fonts() {
   fc-cache -fv
 }
 
+install_tpm() {
+  if [ ! -d "$HOME/.tmux/plugins/tpm" ]; then
+    echo "Installing TPM (Tmux Plugin Manager)..."
+    git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+  fi
+}
+
 sync_config() {
   echo "Syncing config from: $REPO_URL"
   rm -rf ~/.config/nvim ~/.local/share/nvim ~/.local/state/nvim ~/.cache/nvim
@@ -75,6 +82,12 @@ sync_config() {
     echo "Error: 'nvim' directory not found in repo."
     exit 1
   fi
+
+  if [ -f "$TMP_DIR/tmux.conf" ]; then
+    cp "$TMP_DIR/tmux.conf" ~/.tmux.conf
+    echo "tmux config installed at ~/.tmux.conf"
+  fi
+
   rm -rf "$TMP_DIR"
 }
 
@@ -83,6 +96,7 @@ case $CHOICE in
   install_deps
   install_ai
   install_fonts
+  install_tpm
   sync_config
   ;;
 2)
