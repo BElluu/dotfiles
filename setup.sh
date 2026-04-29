@@ -19,10 +19,12 @@ setup_env() {
 
 install_deps() {
   echo "Installing system dependencies..."
-  sudo apt update && sudo apt install -y alacritty tmux fzf ripgrep fd-find git unzip build-essential fontconfig libfuse2 nodejs npm curl
+  sudo apt update && sudo apt install -y alacritty tmux fzf ripgrep fd-find git unzip build-essential fontconfig libfuse2 curl
+
+  install_node_via_nvm
 
   echo "Installing tree-sitter-cli via npm..."
-  sudo npm install -g tree-sitter-cli
+  npm install -g tree-sitter-cli
 
   if ! command -v brew &>/dev/null; then
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -45,7 +47,7 @@ install_deps() {
 
 install_ai() {
   echo "Installing AI tools..."
-  sudo npm install -g @anthropic-ai/claude-code
+  npm install -g @anthropic-ai/claude-code
   curl https://cursor.com/install.sh -fsS | bash
   if ! grep -q ".local/bin" ~/.bashrc; then
     echo 'export PATH="$HOME/.local/bin:$PATH"' >>~/.bashrc
@@ -68,6 +70,49 @@ install_tpm() {
   fi
 }
 
+install_node_via_nvm() {
+
+  if command -v node &>/dev/null && command -v npm &>/dev/null; then
+
+    echo "Node.js is already installed ($(node -v)). Skipping..."
+
+  else
+
+    echo "Node.js not found. Installing NVM and Node 24..."
+
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+
+    
+
+    # Załadowanie nvm do bieżącej sesji skryptu
+
+    export NVM_DIR="$HOME/.nvm"
+
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+    
+
+    nvm install 24
+
+    nvm use 24
+
+    nvm alias default 24
+
+
+
+    # Dodanie ładowania nvm do .bashrc, jeśli go tam nie ma
+
+    if ! grep -q "NVM_DIR" ~/.bashrc; then
+
+      echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.bashrc
+
+      echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.bashrc
+
+    fi
+
+  fi
+
+}
 sync_config() {
   DOTFILES_DIR="$HOME/code/dotfiles"
 
