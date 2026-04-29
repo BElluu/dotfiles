@@ -8,9 +8,13 @@ return {
   {
     "mason-org/mason.nvim",
     opts = {
+      registries = {
+        "github:mason-org/mason-registry",
+        "github:Crashdummyy/mason-registry",
+      },
       ensure_installed = {
         "stylua",
-        "omnisharp", -- C# LSP
+        "roslyn",
         "typescript-language-server", -- TS LSP
         "netcoredbg", -- Debugger dla C#
       },
