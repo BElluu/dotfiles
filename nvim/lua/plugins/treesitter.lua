@@ -10,6 +10,8 @@ return {
       ensure_installed = {
         "bash",
         "c_sharp",
+        "elixir",
+        "heex",
         "javascript",
         "json",
         "lua",
