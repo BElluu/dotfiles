@@ -15,6 +15,7 @@ return {
       ensure_installed = {
         "stylua",
         "roslyn",
+        "elixir-ls",
         "typescript-language-server", -- TS LSP
         "netcoredbg", -- Debugger dla C#
       },
@@ -41,5 +42,10 @@ return {
         sorting_strategy = "ascending",
       },
     },
+  },
+  {
+    "nvim-pack/nvim-spectre",
+    build = false,
+    cmd = "Spectre",
   },
 }

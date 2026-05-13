@@ -17,14 +17,6 @@ vim.lsp.config("roslyn", {
 
 return {
   {
-    "neovim/nvim-lspconfig",
-    opts = {
-      servers = {
-        omnisharp = { enabled = false },
-      },
-    },
-  },
-  {
     "seblyng/roslyn.nvim",
     ft = "cs",
     opts = {
