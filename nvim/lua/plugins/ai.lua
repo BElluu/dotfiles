@@ -25,6 +25,10 @@ return {
       vim.keymap.set("n", "<leader>ac", function()
         claude:toggle()
       end, { desc = "Claude Code" })
+      vim.keymap.set("t", "<C-x>", function()
+        if claude:is_open() then claude:close() end
+        if cursor_agent:is_open() then cursor_agent:close() end
+      end, { desc = "Hide current terminal" })
       vim.keymap.set("n", "<leader>aa", function()
         cursor_agent:toggle()
       end, { desc = "Cursor AI CLI" })
