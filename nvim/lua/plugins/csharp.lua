@@ -10,7 +10,7 @@ vim.lsp.config("roslyn", {
       dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name = true,
     },
     ["csharp|code_lens"] = {
-      dotnet_enable_references_code_lens = true,
+      dotnet_enable_references_code_lens = false,
     },
   },
 })
@@ -20,7 +20,7 @@ return {
     "seblyng/roslyn.nvim",
     ft = "cs",
     opts = {
-      broad_search = true,
+      broad_search = false,
       lock_target = true,
       filewatching = "roslyn",
       silent = true,
