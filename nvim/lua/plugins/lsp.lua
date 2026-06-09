@@ -12,7 +12,13 @@ return {
       codelens = { enabled = false },
       servers = {
         omnisharp = { enabled = false },
-        elixirls = {},
+        elixirls = {
+          settings = {
+            elixirLS = {
+              mixEnv = "dev",
+            },
+          },
+        },
       },
     },
   },
