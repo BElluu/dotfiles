@@ -1,0 +1,6 @@
+# Celowo bez oh-my-zsh: przy kilkunastu panelach liczy się czas startu.
+zsh-users/zsh-completions
+Aloxaf/fzf-tab
+zsh-users/zsh-autosuggestions
+# syntax-highlighting MUSI być ostatni
+zsh-users/zsh-syntax-highlighting

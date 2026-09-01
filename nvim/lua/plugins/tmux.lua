@@ -1,7 +1,6 @@
 return {
   {
     "christoomey/vim-tmux-navigator",
-    -- Ctrl+h/j/k/l — seamless navigation between nvim splits and tmux panes
     cmd = {
       "TmuxNavigateLeft",
       "TmuxNavigateDown",

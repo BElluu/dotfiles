@@ -32,26 +32,20 @@ install_deps() {
 
   setup_env
   brew update && brew install neovim lazygit gcc
-  grep -q "brew shellenv" ~/.bashrc || echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >>~/.bashrc
-  grep -q "\.local/bin" ~/.bashrc || echo 'export PATH="$HOME/.local/bin:$PATH"' >>~/.bashrc
-  grep -q "/usr/local/bin:/usr/bin" ~/.bashrc || echo 'export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"' >>~/.bashrc
+  brew install zsh antidote zoxide atuin sesh
+
   echo "Installing .NET SDK..."
   curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --version latest
 
-  if ! grep -q "DOTNET_ROOT" ~/.bashrc; then
-    echo 'export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"' >>~/.bashrc
-    echo 'export DOTNET_ROOT=$HOME/.dotnet' >>~/.bashrc
-    echo 'export PATH=$PATH:$HOME/.dotnet:$HOME/.dotnet/tools' >>~/.bashrc
-  fi
+  # UWAGA: nic nie dopisujemy do ~/.bashrc — bashrc/zshrc sa wersjonowane
+  # w tym repo i podpinane symlinkiem w sync_config(). Wczesniej dwa osobne
+  # bloki dopisywaly ten sam export PATH, stad duplikaty w PATH.
 }
 
 install_ai() {
   echo "Installing AI tools..."
   npm install -g @anthropic-ai/claude-code
   curl https://cursor.com/install.sh -fsS | bash
-  if ! grep -q ".local/bin" ~/.bashrc; then
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >>~/.bashrc
-  fi
 }
 
 install_fonts() {
@@ -84,8 +78,6 @@ install_node_via_nvm() {
 
     
 
-    # Załadowanie nvm do bieżącej sesji skryptu
-
     export NVM_DIR="$HOME/.nvm"
 
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
@@ -98,17 +90,7 @@ install_node_via_nvm() {
 
     nvm alias default 24
 
-
-
-    # Dodanie ładowania nvm do .bashrc, jeśli go tam nie ma
-
-    if ! grep -q "NVM_DIR" ~/.bashrc; then
-
-      echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.bashrc
-
-      echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.bashrc
-
-    fi
+    # nvm jest juz obslugiwane (leniwie) w wersjonowanym bashrc/zshrc
 
   fi
 
@@ -128,21 +110,37 @@ sync_config() {
   # Clear nvim state/cache but NOT the config dir (it will be a symlink)
   rm -rf ~/.local/share/nvim ~/.local/state/nvim ~/.cache/nvim
 
-  # Symlink nvim config
   rm -rf ~/.config/nvim
   mkdir -p ~/.config
   ln -sf "$DOTFILES_DIR/nvim" ~/.config/nvim
   echo "nvim config symlinked: ~/.config/nvim -> $DOTFILES_DIR/nvim"
 
-  # Symlink tmux config
   ln -sf "$DOTFILES_DIR/tmux.conf" ~/.tmux.conf
   echo "tmux config symlinked: ~/.tmux.conf -> $DOTFILES_DIR/tmux.conf"
 
-  # Symlink sessions script
   mkdir -p ~/.config/tmux
   ln -sf "$DOTFILES_DIR/tmux/sessions.sh" ~/.config/tmux/sessions.sh
   chmod +x "$DOTFILES_DIR/tmux/sessions.sh"
   echo "sessions script symlinked: ~/.config/tmux/sessions.sh -> $DOTFILES_DIR/tmux/sessions.sh"
+
+  ln -sf "$DOTFILES_DIR/tmux/help.sh" ~/.config/tmux/help.sh
+  chmod +x "$DOTFILES_DIR/tmux/help.sh"
+  echo "help script symlinked: ~/.config/tmux/help.sh -> $DOTFILES_DIR/tmux/help.sh"
+
+  [ -e ~/.bashrc ] && [ ! -L ~/.bashrc ] && mv ~/.bashrc ~/.bashrc.pre-dotfiles
+  [ -e ~/.zshrc ]  && [ ! -L ~/.zshrc ]  && mv ~/.zshrc  ~/.zshrc.pre-dotfiles
+  ln -sfn "$DOTFILES_DIR/bash/bashrc"          ~/.bashrc
+  ln -sfn "$DOTFILES_DIR/zsh/zshrc"            ~/.zshrc
+  ln -sfn "$DOTFILES_DIR/zsh/zsh_plugins.txt"  ~/.zsh_plugins.txt
+  echo "shell configs symlinked: ~/.bashrc, ~/.zshrc, ~/.zsh_plugins.txt"
+
+  mkdir -p ~/.local/bin
+  for f in "$DOTFILES_DIR"/bin/*; do
+    [ -f "$f" ] || continue
+    chmod +x "$f"
+    ln -sfn "$f" ~/.local/bin/"$(basename "$f")"
+  done
+  echo "scripts symlinked: $DOTFILES_DIR/bin/* -> ~/.local/bin/"
 }
 
 case $CHOICE in

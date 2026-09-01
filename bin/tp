@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# tp — "tmux project": otwiera/tworzy sesję dla katalogu projektu.
+#
+#   tp              -> fzf po repo i katalogach w $TP_ROOTS
+#   tp ~/code/foo   -> sesja "foo" dla tego katalogu
+#
+# Layout jest zawsze taki sam, żeby mięśniowa pamięć działała w każdym projekcie:
+#   1:Agenci   2:IDE   3:Terminal
+# Startujesz na oknie Agenci. TP_AGENT_CMD (domyślnie claude) odpala tam agenta;
+# ustaw na puste, żeby okno zostało samym shellem.
+
+set -euo pipefail
+
+TP_ROOTS="${TP_ROOTS:-$HOME/code}"
+TP_AGENT_CMD="${TP_AGENT_CMD-claude}"
+
+dir="${1:-}"
+
+if [ -z "$dir" ]; then
+  IFS=':' read -ra roots <<< "$TP_ROOTS"
+  dir=$(
+    for r in "${roots[@]}"; do
+      [ -d "$r" ] || continue
+      find "$r" -mindepth 1 -maxdepth 3 -type d -name .git -prune -print 2>/dev/null \
+        | sed 's|/\.git$||'
+      find "$r" -mindepth 1 -maxdepth 1 -type d 2>/dev/null
+    done | sort -u | fzf --prompt='projekt> ' --height=100% --reverse
+  ) || exit 0
+fi
+
+[ -n "$dir" ] || exit 0
+[ -d "$dir" ] || { echo "tp: nie ma katalogu: $dir" >&2; exit 1; }
+dir=$(cd "$dir" && pwd)
+
+# tmux traktuje . i : w nazwie sesji jako separatory adresu
+name=$(basename "$dir" | tr '.:' '__')
+
+if ! tmux has-session -t="$name" 2>/dev/null; then
+  tmux new-session -d -s "$name" -c "$dir" -n Agenci
+  if [ -n "$TP_AGENT_CMD" ]; then
+    tmux send-keys -t "$name:Agenci" "$TP_AGENT_CMD" C-m
+  fi
+
+  tmux new-window -t "$name:" -c "$dir" -n IDE
+  tmux send-keys  -t "$name:IDE" 'nvim .' C-m
+
+  tmux new-window -t "$name:" -c "$dir" -n Terminal
+
+  tmux select-window -t "$name:Agenci"
+fi
+
+if [ -n "${TMUX:-}" ]; then
+  tmux switch-client -t "$name"
+else
+  tmux attach-session -t "$name"
+fi

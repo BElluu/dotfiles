@@ -16,8 +16,8 @@ return {
         "stylua",
         "roslyn",
         "elixir-ls",
-        "typescript-language-server", -- TS LSP
-        "netcoredbg", -- Debugger dla C#
+        "typescript-language-server",
+        "netcoredbg",
       },
     },
   },

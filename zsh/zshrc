@@ -1,0 +1,163 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  zsh — profil pod pracę w wielu panelach tmuxa
+#  Zasada przewodnia: koszt startu shella mnoży się przez liczbę paneli,
+#  więc wszystko drogie jest ładowane leniwie. Stąd też brak oh-my-zsh.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── PATH i środowisko ────────────────────────────────────────────────────────
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+export DOTNET_ROOT="$HOME/.dotnet"
+export BUN_INSTALL="$HOME/.bun"
+
+path=(
+  "$HOME/.local/bin"
+  "$HOME/go/bin"
+  "$BUN_INSTALL/bin"
+  "$HOME/.dotnet"
+  "$HOME/.dotnet/tools"
+  $path
+)
+typeset -U path PATH
+
+# ── PATH: katalogi Windows (DrvFs) ───────────────────────────────────────────
+# WSL doklejal 62 katalogi z /mnt/c. Kazdy z nich lezy na DrvFs, gdzie stat
+# kosztuje ~3.5 ms. zsh-syntax-highlighting sprawdza "czy to komenda" przy
+# KAZDYM nacisnietym klawiszu, wiec pelny skan PATH to bylo ~280 ms na znak —
+# stad literki nie nadazaly przy trzymanym klawiszu.
+# Zostaje tylko system32 (clip.exe, powershell.exe, explorer.exe, cmd.exe):
+#   62 katalogi -> 283 ms | system32 + Windows -> 3.7 ms
+# Reszta jest zapamietana i wraca na zadanie: `winpath`.
+WINDOWS_PATH_KEEP=(/mnt/c/Windows/system32 /mnt/c/Windows)
+WINDOWS_PATH_DROPPED=(${(M)path:#/mnt/c*})
+path=(${path:#/mnt/c*} $WINDOWS_PATH_KEEP)
+typeset -U path PATH
+
+# Przywraca pelny windowsowy PATH w biezacej powloce, gdy naprawde potrzebny.
+winpath() {
+  path+=($WINDOWS_PATH_DROPPED)
+  typeset -U path PATH
+  hash -r
+  print -r -- "PATH: dodano ${#WINDOWS_PATH_DROPPED} katalogow z /mnt/c (pisanie bedzie wolniejsze)"
+}
+
+export EDITOR=nvim
+export VISUAL=nvim
+
+# ── nvm — leniwie ────────────────────────────────────────────────────────────
+# Pełne `source nvm.sh` kosztuje ~0.85 s. Przy kilkunastu panelach to nie
+# przechodzi, więc do PATH trafia od razu tylko domyślna wersja node,
+# a samo `nvm` doczytuje się przy pierwszym wywołaniu.
+export NVM_DIR="$HOME/.nvm"
+if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+  __nvm_default="$(<"$NVM_DIR/alias/default")" 2>/dev/null
+  for __d in "$NVM_DIR/versions/node/v${__nvm_default#v}"*(/N); do
+    path=("$__d/bin" $path); break
+  done
+  unset __nvm_default __d
+  nvm() { unset -f nvm; source "$NVM_DIR/nvm.sh"; nvm "$@"; }
+fi
+
+# ── asdf ─────────────────────────────────────────────────────────────────────
+if [[ -s "$HOME/.asdf/asdf.sh" ]]; then
+  source "$HOME/.asdf/asdf.sh"
+  fpath=("$HOME/.asdf/completions" $fpath)
+fi
+
+# ── Opcje powłoki ────────────────────────────────────────────────────────────
+setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_SILENT
+setopt EXTENDED_GLOB NO_BEEP INTERACTIVE_COMMENTS
+setopt COMPLETE_IN_WORD ALWAYS_TO_END
+
+# ── Historia — wspólna dla wszystkich paneli ─────────────────────────────────
+# To jest ten problem, przez który w bashu historia z jednego panelu
+# nadpisywała historię z pozostałych.
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=100000
+SAVEHIST=100000
+setopt SHARE_HISTORY INC_APPEND_HISTORY EXTENDED_HISTORY
+setopt HIST_IGNORE_DUPS HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE
+setopt HIST_REDUCE_BLANKS HIST_VERIFY
+
+# ── Strojenie pluginow (musi byc PRZED antidote) ─────────────────────────────
+# Strategia `completion` odpala system dopelniania przy kazdym znaku — kosztowna.
+# Sama historia wystarcza i jest o rzad wielkosci tansza.
+ZSH_AUTOSUGGEST_STRATEGY=(history)
+ZSH_AUTOSUGGEST_MANUAL_REBIND=1        # bez rebindowania widgetow na kazdym prompcie
+ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=25     # nie podpowiadaj przy dlugich liniach
+ZSH_HIGHLIGHT_MAXLENGTH=512            # nie koloruj bardzo dlugich linii
+
+# ── Pluginy (antidote, statyczny bundle = szybki start) ──────────────────────
+ANTIDOTE="/home/linuxbrew/.linuxbrew/opt/antidote/share/antidote/antidote.zsh"
+if [[ -r "$ANTIDOTE" ]]; then
+  zbundle="$HOME/.zsh_plugins.zsh"
+  if [[ ! -r "$zbundle" || "$HOME/.zsh_plugins.txt" -nt "$zbundle" ]]; then
+    source "$ANTIDOTE"
+    antidote bundle < "$HOME/.zsh_plugins.txt" > "$zbundle"
+  fi
+  source "$zbundle"
+  unset zbundle
+fi
+
+# ── Completion ───────────────────────────────────────────────────────────────
+autoload -Uz compinit
+# przebuduj cache raz na dobę zamiast przy każdym starcie
+if [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.mh+24) ]]; then
+  compinit
+else
+  compinit -C
+fi
+
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+zstyle ':completion:*' menu no                  # fzf-tab zamiast menu zsh
+zstyle ':completion:*' list-colors ''
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always $realpath'
+
+# ── fzf ──────────────────────────────────────────────────────────────────────
+# fzf 0.44 (debian) nie ma jeszcze `fzf --zsh`, więc źródłujemy pliki wprost
+for f in /usr/share/doc/fzf/examples/{key-bindings.zsh,completion.zsh}; do
+  [[ -r "$f" ]] && source "$f"
+done
+unset f
+export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border --info=inline'
+export FZF_DEFAULT_COMMAND='fdfind --type f --hidden --exclude .git'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+
+# ── zoxide ───────────────────────────────────────────────────────────────────
+command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
+
+# ── atuin — jedna historia dla wszystkich paneli, Ctrl+R ─────────────────────
+# Musi być PO fzf, żeby przejąć Ctrl+R.
+if command -v atuin >/dev/null; then
+  eval "$(atuin init zsh --disable-up-arrow)"
+  # atuin dopisuje sie na poczatek strategii podpowiedzi i odpytuje swoje sqlite
+  # przy kazdym znaku (~11 ms). Ctrl+R z atuin zostaje, ale podpowiedzi w linii
+  # niech ida z taniej historii zsh.
+  ZSH_AUTOSUGGEST_STRATEGY=(history)
+fi
+
+# ── Prompt ───────────────────────────────────────────────────────────────────
+# Własny, minimalny — zero zależności, zero zauważalnego kosztu.
+autoload -Uz vcs_info add-zsh-hook
+zstyle ':vcs_info:*' enable git
+zstyle ':vcs_info:git:*' formats ' %F{#a6adc8}%b%f'
+zstyle ':vcs_info:git:*' actionformats ' %F{#f38ba8}%b|%a%f'
+add-zsh-hook precmd vcs_info
+
+setopt PROMPT_SUBST
+PROMPT='%F{#89b4fa}%~%f${vcs_info_msg_0_} %(?.%F{#a6e3a1}.%F{#f38ba8})❯%f '
+
+# ── Aliasy ───────────────────────────────────────────────────────────────────
+alias ll='ls -lah --color=auto'
+alias la='ls -A --color=auto'
+alias fd='fdfind'
+alias lg='lazygit'
+alias v='nvim'
+alias gs='git status -sb'
+alias gd='git diff'
+alias gl='git log --oneline --graph --decorate -20'
+alias tl='tmux list-sessions'
+alias reload='exec zsh'
+
+# ── Lokalne nadpisania (poza repo dotfiles) ──────────────────────────────────
+[[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
